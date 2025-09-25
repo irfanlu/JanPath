@@ -1,0 +1,1970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JanPath - Citizen Feedback System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { 
+            font-family: 'Inter', sans-serif; 
+            box-sizing: border-box;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .gradient-bg.authority-theme {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .status-new { background: #fef3c7; color: #92400e; }
+        .status-progress { background: #dbeafe; color: #1e40af; }
+        .status-completed { background: #d1fae5; color: #065f46; }
+        .status-rejected { background: #fee2e2; color: #991b1b; }
+        
+        .priority-high { border-left: 4px solid #ef4444; }
+        .priority-medium { border-left: 4px solid #f59e0b; }
+        .priority-low { border-left: 4px solid #10b981; }
+        
+        :root {
+            --primary-color: #7c3aed;
+            --primary-hover: #6d28d9;
+            --primary-light: #ddd6fe;
+        }
+        
+        .authority-theme {
+            --primary-color: #f59e0b;
+            --primary-hover: #d97706;
+            --primary-light: #fef3c7;
+        }
+        
+        .theme-primary { background-color: var(--primary-color) !important; }
+        .theme-primary:hover { background-color: var(--primary-hover) !important; }
+        .theme-primary-light { background-color: var(--primary-light) !important; }
+        .theme-primary-text { color: var(--primary-color) !important; }
+        .theme-primary-border { border-color: var(--primary-color) !important; }
+        .theme-focus { --tw-ring-color: var(--primary-color) !important; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                        <span class="text-2xl">🛣️</span>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold">JanPath</h1>
+                        <p class="text-sm opacity-90">Citizen Feedback System</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm" id="locationText">📍 Current Location: Downtown District</span>
+                    <button onclick="showLoginModal('citizen')" class="bg-white text-purple-600 px-3 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors text-sm" id="citizenLoginBtn">
+                        Citizen Login
+                    </button>
+                    <button onclick="showLoginModal('authority')" class="bg-yellow-400 text-gray-800 px-3 py-2 rounded-lg font-medium hover:bg-yellow-300 transition-colors text-sm" id="authorityLoginBtn">
+                        Authority Login
+                    </button>
+                    <button onclick="toggleLanguage()" class="bg-blue-500 text-white px-3 py-2 rounded-lg font-medium hover:bg-blue-600 transition-colors text-sm flex items-center space-x-1">
+                        <span>🌐</span>
+                        <span id="languageToggle">हिंदी</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-6 py-8">
+        <!-- Citizen Status Dashboard - Only visible for Citizen users -->
+        <div id="citizenDashboard" class="bg-white rounded-xl shadow-sm p-6 mb-8" style="display: none;">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <span class="mr-2">📊</span>
+                <span id="citizenDashboardTitle">My Reports Status</span>
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-yellow-50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-yellow-600" id="citizenNew">0</div>
+                    <div class="text-sm text-yellow-700" id="citizenNewLabel">New Reports</div>
+                </div>
+                <div class="bg-blue-50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-blue-600" id="citizenProgress">0</div>
+                    <div class="text-sm text-blue-700" id="citizenProgressLabel">In Progress</div>
+                </div>
+                <div class="bg-green-50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-green-600" id="citizenCompleted">0</div>
+                    <div class="text-sm text-green-700" id="citizenCompletedLabel">Completed</div>
+                </div>
+                <div class="bg-red-50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-red-600" id="citizenRejected">0</div>
+                    <div class="text-sm text-red-700" id="citizenRejectedLabel">Rejected</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats - Only visible for Authority users -->
+        <div id="dashboardStats" class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8" style="display: none;">
+            <div class="bg-white rounded-xl p-6 shadow-sm card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm" id="totalReportsLabel">Total Reports</p>
+                        <p class="text-3xl font-bold text-gray-800" id="totalReports">257</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span class="text-2xl">📊</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl p-6 shadow-sm card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm" id="inProgressLabel">In Progress</p>
+                        <p class="text-3xl font-bold text-blue-600" id="inProgress">21</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span class="text-2xl">🔧</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl p-6 shadow-sm card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm" id="completedLabel">Completed</p>
+                        <p class="text-3xl font-bold text-green-600" id="completed">208</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                        <span class="text-2xl">✅</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl p-6 shadow-sm card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm" id="rejectedLabel">Rejected</p>
+                        <p class="text-3xl font-bold text-red-600" id="rejected">26</p>
+                    </div>
+                    <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                        <span class="text-2xl">❌</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl p-6 shadow-sm card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm" id="avgResponseLabel">Avg Response</p>
+                        <p class="text-3xl font-bold text-purple-600">2.3 days</p>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                        <span class="text-2xl">⏱️</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Report Form -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h2 class="text-xl font-semibold mb-6 flex items-center">
+                        <span class="mr-2">📝</span>
+                        <span id="reportIssueTitle">Report an Issue</span>
+                    </h2>
+                    
+                    <form id="reportForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" id="issueTypeLabel">Issue Type</label>
+                            <select id="issueType" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 theme-focus focus:border-transparent">
+                                <option value="" id="selectIssueOption">Select issue type</option>
+                                <option value="pothole" id="potholeOption">Pothole</option>
+                                <option value="crack" id="crackOption">Road Crack</option>
+                                <option value="signage" id="signageOption">Damaged Signage</option>
+                                <option value="lighting" id="lightingOption">Street Lighting</option>
+                                <option value="drainage" id="drainageOption">Drainage Issue</option>
+                                <option value="other" id="otherOption">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" id="locationLabel">Location</label>
+                            <input type="text" id="location" placeholder="Street name or intersection" 
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 theme-focus focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" id="priorityLabel">Priority Level</label>
+                            <select id="priority" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 theme-focus focus:border-transparent">
+                                <option value="low" id="lowPriorityOption">Low - Minor issue</option>
+                                <option value="medium" id="mediumPriorityOption">Medium - Moderate concern</option>
+                                <option value="high" id="highPriorityOption">High - Safety hazard</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" id="descriptionLabel">Description</label>
+                            <textarea id="description" rows="3" placeholder="Describe the issue in detail..."
+                                      class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 theme-focus focus:border-transparent"></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" id="uploadPhotosLabel">Upload Photos (Optional)</label>
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                                <input type="file" id="photoUpload" multiple accept="image/*" class="hidden" onchange="handlePhotoUpload(event)">
+                                <div id="uploadArea" onclick="document.getElementById('photoUpload').click()" class="cursor-pointer">
+                                    <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                        <span class="text-2xl">📷</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-1" id="uploadText">Click to upload photos</p>
+                                    <p class="text-xs text-gray-500" id="uploadSubtext">PNG, JPG up to 5MB each (max 3 photos)</p>
+                                </div>
+                                <div id="photoPreview" class="mt-4 grid grid-cols-3 gap-2 hidden"></div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" id="contactLabel">Your Contact (Optional)</label>
+                            <input type="email" id="contact" placeholder="email@example.com" 
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 theme-focus focus:border-transparent">
+                        </div>
+                        
+                        <button type="submit" class="w-full theme-primary text-white py-3 rounded-lg font-medium transition-colors" id="submitReportBtn">
+                            Submit Report
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Reports List -->
+            <div class="lg:col-span-2" id="reportsSection">
+                <div class="bg-white rounded-xl shadow-sm">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-xl font-semibold flex items-center">
+                                <span class="mr-2">📋</span>
+                                <span id="recentReportsTitle">Recent Reports</span>
+                            </h2>
+                            <div class="flex space-x-2" id="filterButtons">
+                                <button onclick="filterReports('all')" class="filter-btn px-3 py-1 rounded-full text-sm theme-primary-light theme-primary-text" id="allFilterBtn">All</button>
+                                <button onclick="filterReports('new')" class="filter-btn px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700" id="newFilterBtn">New</button>
+                                <button onclick="filterReports('progress')" class="filter-btn px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700" id="progressFilterBtn">In Progress</button>
+                                <button onclick="filterReports('completed')" class="filter-btn px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700" id="completedFilterBtn">Completed</button>
+                                <button onclick="filterReports('rejected')" class="filter-btn px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700" id="rejectedFilterBtn">Rejected</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="reportsList" class="divide-y divide-gray-200 max-h-96 overflow-y-auto">
+                        <!-- Reports will be populated here -->
+                    </div>
+                    
+                    <!-- Login Required Message -->
+                    <div id="loginRequiredMessage" class="p-8 text-center">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-3xl">🔒</span>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2" id="loginRequiredTitle">Login Required</h3>
+                        <p class="text-gray-600 mb-6" id="loginRequiredText">Please log in to view recent reports and track their progress.</p>
+                        <div class="flex justify-center space-x-3">
+                            <button onclick="showLoginModal('citizen')" class="bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors" id="loginRequiredCitizenBtn">
+                                Citizen Login
+                            </button>
+                            <button onclick="showLoginModal('authority')" class="bg-yellow-500 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-yellow-600 transition-colors" id="loginRequiredAuthorityBtn">
+                                Authority Login
+                            </button>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-4" id="anonymousSubmitText">
+                            You can still submit reports anonymously using the form on the left.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Login Modals -->
+        <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-white rounded-xl p-8 max-w-md mx-4 w-full">
+                <div class="text-center mb-6">
+                    <div id="loginIcon" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-3xl" id="loginEmoji">👤</span>
+                    </div>
+                    <h3 class="text-2xl font-semibold mb-2" id="loginTitle">Citizen Login</h3>
+                    <p class="text-gray-600" id="loginSubtitle">Access your account to track reports</p>
+                </div>
+                
+                <!-- Login Method Tabs -->
+                <div class="flex mb-6 bg-gray-100 rounded-lg p-1">
+                    <button onclick="switchLoginMethod('password')" id="passwordTab" class="flex-1 py-2 px-4 rounded-md text-sm font-medium bg-white text-gray-900 shadow-sm">
+                        Password
+                    </button>
+                    <button onclick="switchLoginMethod('otp')" id="otpTab" class="flex-1 py-2 px-4 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900">
+                        OTP
+                    </button>
+                </div>
+
+                <form id="loginForm" class="space-y-4">
+                    <!-- Password Login Form -->
+                    <div id="passwordLoginForm">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" id="emailLabel">Email Address</label>
+                            <input type="email" id="loginEmail" 
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 theme-focus focus:border-transparent"
+                                   placeholder="Enter your email">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" id="passwordLabel">Password</label>
+                            <input type="password" id="loginPassword" 
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 theme-focus focus:border-transparent"
+                                   placeholder="Enter your password">
+                        </div>
+                        
+                        <div class="flex items-center justify-between text-sm">
+                            <label class="flex items-center">
+                                <input type="checkbox" class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                <span class="ml-2 text-gray-600" id="rememberMeLabel">Remember me</span>
+                            </label>
+                            <a href="#" class="text-purple-600 hover:text-purple-800" id="forgotPasswordLink">Forgot password?</a>
+                        </div>
+                    </div>
+
+                    <!-- OTP Login Form -->
+                    <div id="otpLoginForm" class="hidden">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" id="phoneLabel">Phone Number</label>
+                            <input type="tel" id="loginPhone" 
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 theme-focus focus:border-transparent"
+                                   placeholder="Enter your phone number">
+                        </div>
+                        
+                        <div id="otpSection" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-2" id="otpLabel">Enter OTP</label>
+                            <div class="flex space-x-2 mb-3">
+                                <input type="text" maxlength="1" class="otp-input w-12 h-12 text-center border border-gray-300 rounded-lg focus:ring-2 theme-focus focus:border-transparent">
+                                <input type="text" maxlength="1" class="otp-input w-12 h-12 text-center border border-gray-300 rounded-lg focus:ring-2 theme-focus focus:border-transparent">
+                                <input type="text" maxlength="1" class="otp-input w-12 h-12 text-center border border-gray-300 rounded-lg focus:ring-2 theme-focus focus:border-transparent">
+                                <input type="text" maxlength="1" class="otp-input w-12 h-12 text-center border border-gray-300 rounded-lg focus:ring-2 theme-focus focus:border-transparent">
+                                <input type="text" maxlength="1" class="otp-input w-12 h-12 text-center border border-gray-300 rounded-lg focus:ring-2 theme-focus focus:border-transparent">
+                                <input type="text" maxlength="1" class="otp-input w-12 h-12 text-center border border-gray-300 rounded-lg focus:ring-2 theme-focus focus:border-transparent">
+                            </div>
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="text-gray-600" id="didntReceiveText">Didn't receive OTP?</span>
+                                <button type="button" onclick="resendOTP()" class="text-purple-600 hover:text-purple-800 font-medium" id="resendBtn">Resend</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" id="loginSubmitBtn" class="w-full theme-primary text-white py-3 rounded-lg font-medium transition-colors">
+                        <span id="loginBtnText">Sign In</span>
+                    </button>
+                    
+                    <!-- Guest Login -->
+                    <div class="relative">
+                        <div class="absolute inset-0 flex items-center">
+                            <div class="w-full border-t border-gray-300"></div>
+                        </div>
+                        <div class="relative flex justify-center text-sm">
+                            <span class="px-2 bg-white text-gray-500" id="orText">or</span>
+                        </div>
+                    </div>
+                    
+                    <button type="button" onclick="guestLogin()" class="w-full bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors border border-gray-300" id="guestLoginBtn">
+                        🚶 Continue as Guest
+                    </button>
+                    
+                    <div class="text-center text-sm text-gray-600">
+                        <span id="noAccountText">Don't have an account?</span>
+                        <a href="#" class="text-purple-600 hover:text-purple-800 font-medium" id="signUpLink">Sign up</a>
+                    </div>
+                </form>
+                
+                <button onclick="closeLoginModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Success Modal -->
+        <div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-white rounded-xl p-8 max-w-md mx-4">
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-3xl">✅</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2" id="reportSubmittedTitle">Report Submitted!</h3>
+                    <p class="text-gray-600 mb-6" id="reportSubmittedText">Thank you for helping improve our roads. Your report has been assigned ID: <span id="reportId" class="font-mono font-bold"></span></p>
+                    <button onclick="closeModal()" class="theme-primary text-white px-6 py-2 rounded-lg transition-colors" id="closeSuccessBtn">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Login Success Modal -->
+        <div id="loginSuccessModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-white rounded-xl p-8 max-w-md mx-4">
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-3xl">🎉</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2" id="welcomeTitle">Welcome Back!</h3>
+                    <p class="text-gray-600 mb-6" id="welcomeMessage">You have successfully logged in to your account.</p>
+                    <button onclick="closeLoginSuccessModal()" class="theme-primary text-white px-6 py-2 rounded-lg transition-colors" id="continueBtn">
+                        Continue
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Photo View Modal -->
+        <div id="photoModal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50">
+            <div class="max-w-4xl mx-4 w-full">
+                <div class="bg-white rounded-xl overflow-hidden">
+                    <div class="flex items-center justify-between p-4 border-b">
+                        <h3 class="text-lg font-semibold" id="photoModalTitle">Photo View</h3>
+                        <button onclick="closePhotoModal()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="p-4 text-center">
+                        <img id="photoModalImage" src="" alt="" class="max-w-full max-h-96 mx-auto rounded-lg shadow-lg">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data for existing reports
+        let reports = [
+            {
+                id: 'JP-2024-001',
+                type: 'pothole',
+                location: 'Main St & 5th Ave',
+                priority: 'high',
+                status: 'progress',
+                description: 'Large pothole causing traffic issues',
+                date: '2024-01-15',
+                contact: 'citizen@email.com',
+                photos: [
+                    {
+                        id: 'photo1',
+                        name: 'pothole_main_st.jpg',
+                        dataUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iIzMzMzMzMyIvPjx0ZXh0IHg9IjEwMCIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkxhcmdlIFBvdGhvbGU8L3RleHQ+PC9zdmc+'
+                    },
+                    {
+                        id: 'photo2',
+                        name: 'damage_close_up.jpg',
+                        dataUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iIzQ0NDQ0NCIvPjx0ZXh0IHg9IjEwMCIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkNsb3NlLXVwIFZpZXc8L3RleHQ+PC9zdmc+'
+                    }
+                ]
+            },
+            {
+                id: 'JP-2024-002',
+                type: 'signage',
+                location: 'Oak Street',
+                priority: 'medium',
+                status: 'completed',
+                description: 'Stop sign damaged by storm',
+                date: '2024-01-14',
+                contact: 'resident@email.com',
+                photos: [
+                    {
+                        id: 'photo3',
+                        name: 'damaged_stop_sign.jpg',
+                        dataUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iI2RkMzMzMyIvPjx0ZXh0IHg9IjEwMCIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkRhbWFnZWQgU2lnbjwvdGV4dD48L3N2Zz4='
+                    }
+                ]
+            },
+            {
+                id: 'JP-2024-003',
+                type: 'lighting',
+                location: 'Park Avenue',
+                priority: 'low',
+                status: 'new',
+                description: 'Street light flickering intermittently',
+                date: '2024-01-16',
+                contact: ''
+            },
+            {
+                id: 'JP-2024-004',
+                type: 'crack',
+                location: 'Highway 101',
+                priority: 'medium',
+                status: 'rejected',
+                description: 'Long crack developing across road surface',
+                date: '2024-01-13',
+                contact: 'driver@email.com',
+                rejectionReason: 'Insufficient evidence - photos do not clearly show the reported damage',
+                photos: [
+                    {
+                        id: 'photo4',
+                        name: 'road_crack_highway.jpg',
+                        dataUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iIzU1NTU1NSIvPjxsaW5lIHgxPSIyMCIgeTE9IjUwIiB4Mj0iMTgwIiB5Mj0iMTAwIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMyIvPjx0ZXh0IHg9IjEwMCIgeT0iMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Um9hZCBDcmFjazwvdGV4dD48L3N2Zz4='
+                    }
+                ]
+            },
+            {
+                id: 'JP-2024-005',
+                type: 'drainage',
+                location: 'Elm Street Bridge',
+                priority: 'high',
+                status: 'new',
+                description: 'Water pooling under bridge after rain, creating hazardous driving conditions',
+                date: '2024-01-17',
+                contact: 'concerned.citizen@email.com',
+                photos: [
+                    {
+                        id: 'photo5',
+                        name: 'water_pooling.jpg',
+                        dataUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iIzMzNjZjYyIvPjxjaXJjbGUgY3g9IjEwMCIgY3k9Ijc1IiByPSI0MCIgZmlsbD0iIzY2OTljYyIgb3BhY2l0eT0iMC43Ii8+PHRleHQgeD0iMTAwIiB5PSI4MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5XYXRlciBQb29saW5nPC90ZXh0Pjwvc3ZnPg=='
+                    }
+                ]
+            },
+            {
+                id: 'JP-2024-006',
+                type: 'pothole',
+                location: 'Cedar Avenue',
+                priority: 'medium',
+                status: 'rejected',
+                description: 'Small pothole near school zone',
+                date: '2024-01-12',
+                contact: 'parent@email.com',
+                rejectionReason: 'Duplicate report - already addressed in JP-2024-001'
+            },
+            {
+                id: 'JP-2024-007',
+                type: 'signage',
+                location: 'Maple Street & 2nd Ave',
+                priority: 'high',
+                status: 'progress',
+                description: 'Traffic light malfunctioning, stuck on red',
+                date: '2024-01-18',
+                contact: 'traffic.observer@email.com'
+            },
+            {
+                id: 'JP-2024-008',
+                type: 'lighting',
+                location: 'Pine Street',
+                priority: 'low',
+                status: 'completed',
+                description: 'Street light bulb burned out',
+                date: '2024-01-10',
+                contact: 'nightwalker@email.com'
+            },
+            {
+                id: 'JP-2024-009',
+                type: 'other',
+                location: 'Birch Road',
+                priority: 'medium',
+                status: 'rejected',
+                description: 'Graffiti on road signs',
+                date: '2024-01-11',
+                contact: '',
+                rejectionReason: 'Not a road maintenance issue - please contact city cleaning department'
+            },
+            {
+                id: 'JP-2024-010',
+                type: 'crack',
+                location: 'Willow Drive',
+                priority: 'low',
+                status: 'new',
+                description: 'Minor surface crack developing',
+                date: '2024-01-19',
+                contact: 'homeowner@email.com'
+            }
+        ];
+
+        let currentFilter = 'all';
+        let currentUserType = null;
+        let isLoggedIn = false;
+        let currentLoginMethod = 'password';
+        let otpSent = false;
+        let generatedOTP = null;
+        let uploadedPhotos = [];
+        let currentUserEmail = null;
+        let currentLanguage = 'en'; // 'en' for English, 'hi' for Hindi
+        
+        // Language translations
+        const translations = {
+            en: {
+                // Header
+                locationText: "📍 Current Location: Downtown District",
+                citizenLogin: "Citizen Login",
+                authorityLogin: "Authority Login",
+                languageToggle: "हिंदी",
+                
+                // Main sections
+                reportIssue: "Report an Issue",
+                recentReports: "Recent Reports",
+                myReports: "My Reports",
+                authorityDashboard: "Authority Dashboard - Citizen Reports",
+                myReportsStatus: "My Reports Status",
+                
+                // Form labels
+                issueType: "Issue Type",
+                selectIssueType: "Select issue type",
+                location: "Location",
+                locationPlaceholder: "Street name or intersection",
+                priorityLevel: "Priority Level",
+                lowPriority: "Low - Minor issue",
+                mediumPriority: "Medium - Moderate concern",
+                highPriority: "High - Safety hazard",
+                description: "Description",
+                descriptionPlaceholder: "Describe the issue in detail...",
+                uploadPhotos: "Upload Photos (Optional)",
+                uploadText: "Click to upload photos",
+                uploadSubtext: "PNG, JPG up to 5MB each (max 3 photos)",
+                yourContact: "Your Contact (Optional)",
+                submitReport: "Submit Report",
+                
+                // Issue types
+                pothole: "Pothole",
+                crack: "Road Crack",
+                signage: "Damaged Signage",
+                lighting: "Street Lighting",
+                drainage: "Drainage Issue",
+                other: "Other",
+                
+                // Status
+                new: "New",
+                progress: "In Progress",
+                completed: "Completed",
+                rejected: "Rejected",
+                
+                // Priority
+                low: "Low",
+                medium: "Medium",
+                high: "High",
+                
+                // Filters
+                all: "All",
+                
+                // Login modal
+                citizenLoginTitle: "Citizen Login",
+                citizenLoginSubtitle: "Access your account to track reports",
+                authorityLoginTitle: "Authority Login",
+                authorityLoginSubtitle: "Municipal authority access for managing road maintenance",
+                password: "Password",
+                otp: "OTP",
+                emailAddress: "Email Address",
+                enterEmail: "Enter your email",
+                enterPassword: "Enter your password",
+                phoneNumber: "Phone Number",
+                enterPhone: "Enter your phone number",
+                enterOTP: "Enter OTP",
+                rememberMe: "Remember me",
+                forgotPassword: "Forgot password?",
+                signIn: "Sign In",
+                sendOTP: "Send OTP",
+                verifyOTP: "Verify OTP",
+                continueAsGuest: "🚶 Continue as Guest",
+                dontHaveAccount: "Don't have an account?",
+                signUp: "Sign up",
+                or: "or",
+                didntReceiveOTP: "Didn't receive OTP?",
+                resend: "Resend",
+                
+                // Messages
+                loginRequired: "Login Required",
+                loginRequiredText: "Please log in to view recent reports and track their progress.",
+                anonymousSubmit: "You can still submit reports anonymously using the form on the left.",
+                reportSubmitted: "Report Submitted!",
+                reportSubmittedText: "Thank you for helping improve our roads. Your report has been assigned ID:",
+                welcomeBack: "Welcome Back!",
+                welcomeCitizen: "Welcome Back, Citizen!",
+                welcomeAuthority: "Welcome, Authority Member!",
+                welcomeGuest: "Welcome, Guest!",
+                citizenWelcomeText: "You can now submit reports and track their progress.",
+                authorityWelcomeText: "You have access to the maintenance management dashboard.",
+                guestWelcomeText: "You can browse reports and submit feedback without creating an account.",
+                
+                // Stats
+                totalReports: "Total Reports",
+                inProgress: "In Progress",
+                avgResponse: "Avg Response",
+                
+                // Citizen Dashboard
+                newReports: "New Reports",
+                inProgressReports: "In Progress",
+                completedReports: "Completed",
+                rejectedReports: "Rejected",
+                
+                // Authority actions
+                markInProgress: "Mark In Progress",
+                markCompleted: "Mark Completed",
+                rejectReport: "Reject Report",
+                issueDescription: "Issue Description:",
+                type: "Type",
+                contact: "Contact",
+                anonymous: "Anonymous",
+                uploadedPhotos: "Uploaded Photos",
+                noPhotos: "No photos uploaded for this report.",
+                viewFullSize: "View Full Size",
+                rejectionReason: "Rejection Reason:",
+                
+                // Other
+                close: "Close",
+                continue: "Continue",
+                logout: "Logout",
+                viewDetails: "View Details",
+                yourReport: "Your Report"
+            },
+            hi: {
+                // Header
+                locationText: "📍 वर्तमान स्थान: डाउनटाउन जिला",
+                citizenLogin: "नागरिक लॉगिन",
+                authorityLogin: "प्राधिकरण लॉगिन",
+                languageToggle: "English",
+                
+                // Main sections
+                reportIssue: "समस्या की रिपोर्ट करें",
+                recentReports: "हाल की रिपोर्ट्स",
+                myReports: "मेरी रिपोर्ट्स",
+                authorityDashboard: "प्राधिकरण डैशबोर्ड - नागरिक रिपोर्ट्स",
+                myReportsStatus: "मेरी रिपोर्ट्स की स्थिति",
+                
+                // Form labels
+                issueType: "समस्या का प्रकार",
+                selectIssueType: "समस्या का प्रकार चुनें",
+                location: "स्थान",
+                locationPlaceholder: "सड़क का नाम या चौराहा",
+                priorityLevel: "प्राथमिकता स्तर",
+                lowPriority: "कम - मामूली समस्या",
+                mediumPriority: "मध्यम - मध्यम चिंता",
+                highPriority: "उच्च - सुरक्षा खतरा",
+                description: "विवरण",
+                descriptionPlaceholder: "समस्या का विस्तार से वर्णन करें...",
+                uploadPhotos: "फोटो अपलोड करें (वैकल्पिक)",
+                uploadText: "फोटो अपलोड करने के लिए क्लिक करें",
+                uploadSubtext: "PNG, JPG प्रत्येक 5MB तक (अधिकतम 3 फोटो)",
+                yourContact: "आपका संपर्क (वैकल्पिक)",
+                submitReport: "रिपोर्ट जमा करें",
+                
+                // Issue types
+                pothole: "गड्ढा",
+                crack: "सड़क में दरार",
+                signage: "क्षतिग्रस्त साइनेज",
+                lighting: "स्ट्रीट लाइटिंग",
+                drainage: "जल निकासी की समस्या",
+                other: "अन्य",
+                
+                // Status
+                new: "नया",
+                progress: "प्रगति में",
+                completed: "पूर्ण",
+                rejected: "अस्वीकृत",
+                
+                // Priority
+                low: "कम",
+                medium: "मध्यम",
+                high: "उच्च",
+                
+                // Filters
+                all: "सभी",
+                
+                // Login modal
+                citizenLoginTitle: "नागरिक लॉगिन",
+                citizenLoginSubtitle: "रिपोर्ट्स को ट्रैक करने के लिए अपने खाते में पहुंचें",
+                authorityLoginTitle: "प्राधिकरण लॉगिन",
+                authorityLoginSubtitle: "सड़क रखरखाव के प्रबंधन के लिए नगरपालिका प्राधिकरण पहुंच",
+                password: "पासवर्ड",
+                otp: "ओटीपी",
+                emailAddress: "ईमेल पता",
+                enterEmail: "अपना ईमेल दर्ज करें",
+                enterPassword: "अपना पासवर्ड दर्ज करें",
+                phoneNumber: "फोन नंबर",
+                enterPhone: "अपना फोन नंबर दर्ज करें",
+                enterOTP: "ओटीपी दर्ज करें",
+                rememberMe: "मुझे याद रखें",
+                forgotPassword: "पासवर्ड भूल गए?",
+                signIn: "साइन इन",
+                sendOTP: "ओटीपी भेजें",
+                verifyOTP: "ओटीपी सत्यापित करें",
+                continueAsGuest: "🚶 अतिथि के रूप में जारी रखें",
+                dontHaveAccount: "खाता नहीं है?",
+                signUp: "साइन अप",
+                or: "या",
+                didntReceiveOTP: "ओटीपी नहीं मिला?",
+                resend: "पुनः भेजें",
+                
+                // Messages
+                loginRequired: "लॉगिन आवश्यक",
+                loginRequiredText: "हाल की रिपोर्ट्स देखने और उनकी प्रगति को ट्रैक करने के लिए कृपया लॉग इन करें।",
+                anonymousSubmit: "आप अभी भी बाईं ओर के फॉर्म का उपयोग करके गुमनाम रूप से रिपोर्ट जमा कर सकते हैं।",
+                reportSubmitted: "रिपोर्ट जमा की गई!",
+                reportSubmittedText: "हमारी सड़कों को बेहतर बनाने में मदद करने के लिए धन्यवाद। आपकी रिपोर्ट को आईडी असाइन किया गया है:",
+                welcomeBack: "वापसी पर स्वागत है!",
+                welcomeCitizen: "वापसी पर स्वागत है, नागरिक!",
+                welcomeAuthority: "स्वागत है, प्राधिकरण सदस्य!",
+                welcomeGuest: "स्वागत है, अतिथि!",
+                citizenWelcomeText: "अब आप रिपोर्ट जमा कर सकते हैं और उनकी प्रगति को ट्रैक कर सकते हैं।",
+                authorityWelcomeText: "आपके पास रखरखाव प्रबंधन डैशबोर्ड तक पहुंच है।",
+                guestWelcomeText: "आप खाता बनाए बिना रिपोर्ट्स ब्राउज़ कर सकते हैं और फीडबैक जमा कर सकते हैं।",
+                
+                // Stats
+                totalReports: "कुल रिपोर्ट्स",
+                inProgress: "प्रगति में",
+                avgResponse: "औसत प्रतिक्रिया",
+                
+                // Citizen Dashboard
+                newReports: "नई रिपोर्ट्स",
+                inProgressReports: "प्रगति में",
+                completedReports: "पूर्ण",
+                rejectedReports: "अस्वीकृत",
+                
+                // Authority actions
+                markInProgress: "प्रगति में चिह्नित करें",
+                markCompleted: "पूर्ण चिह्नित करें",
+                rejectReport: "रिपोर्ट अस्वीकार करें",
+                issueDescription: "समस्या का विवरण:",
+                type: "प्रकार",
+                contact: "संपर्क",
+                anonymous: "गुमनाम",
+                uploadedPhotos: "अपलोड की गई फोटो",
+                noPhotos: "इस रिपोर्ट के लिए कोई फोटो अपलोड नहीं की गई।",
+                viewFullSize: "पूर्ण आकार देखें",
+                rejectionReason: "अस्वीकृति का कारण:",
+                
+                // Other
+                close: "बंद करें",
+                continue: "जारी रखें",
+                logout: "लॉगआउट",
+                viewDetails: "विवरण देखें",
+                yourReport: "आपकी रिपोर्ट"
+            }
+        };
+
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'en' ? 'hi' : 'en';
+            updateLanguage();
+        }
+        
+        function updateLanguage() {
+            const t = translations[currentLanguage];
+            
+            // Update header
+            document.getElementById('locationText').textContent = t.locationText;
+            document.getElementById('languageToggle').textContent = t.languageToggle;
+            
+            // Update header buttons based on login state
+            if (isLoggedIn) {
+                updateHeaderForLoggedInUser();
+            } else {
+                const citizenBtn = document.getElementById('citizenLoginBtn');
+                const authorityBtn = document.getElementById('authorityLoginBtn');
+                if (citizenBtn) citizenBtn.textContent = t.citizenLogin;
+                if (authorityBtn) authorityBtn.textContent = t.authorityLogin;
+            }
+            
+            // Update citizen dashboard
+            const citizenDashboard = document.getElementById('citizenDashboard');
+            if (citizenDashboard && !citizenDashboard.style.display.includes('none')) {
+                document.getElementById('citizenDashboardTitle').textContent = t.myReportsStatus;
+                document.getElementById('citizenNewLabel').textContent = t.newReports;
+                document.getElementById('citizenProgressLabel').textContent = t.inProgressReports;
+                document.getElementById('citizenCompletedLabel').textContent = t.completedReports;
+                document.getElementById('citizenRejectedLabel').textContent = t.rejectedReports;
+            }
+            
+            // Update authority dashboard stats
+            const statsElements = document.querySelectorAll('#dashboardStats');
+            if (statsElements.length > 0 && !statsElements[0].style.display.includes('none')) {
+                document.getElementById('totalReportsLabel').textContent = t.totalReports;
+                document.getElementById('inProgressLabel').textContent = t.inProgress;
+                document.getElementById('completedLabel').textContent = t.completed;
+                document.getElementById('rejectedLabel').textContent = t.rejected;
+                document.getElementById('avgResponseLabel').textContent = t.avgResponse;
+            }
+            
+            // Update form
+            document.getElementById('reportIssueTitle').textContent = t.reportIssue;
+            document.getElementById('issueTypeLabel').textContent = t.issueType;
+            document.getElementById('selectIssueOption').textContent = t.selectIssueType;
+            document.getElementById('potholeOption').textContent = t.pothole;
+            document.getElementById('crackOption').textContent = t.crack;
+            document.getElementById('signageOption').textContent = t.signage;
+            document.getElementById('lightingOption').textContent = t.lighting;
+            document.getElementById('drainageOption').textContent = t.drainage;
+            document.getElementById('otherOption').textContent = t.other;
+            
+            document.getElementById('locationLabel').textContent = t.location;
+            document.getElementById('location').placeholder = t.locationPlaceholder;
+            
+            document.getElementById('priorityLabel').textContent = t.priorityLevel;
+            document.getElementById('lowPriorityOption').textContent = t.lowPriority;
+            document.getElementById('mediumPriorityOption').textContent = t.mediumPriority;
+            document.getElementById('highPriorityOption').textContent = t.highPriority;
+            
+            document.getElementById('descriptionLabel').textContent = t.description;
+            document.getElementById('description').placeholder = t.descriptionPlaceholder;
+            
+            document.getElementById('uploadPhotosLabel').textContent = t.uploadPhotos;
+            document.getElementById('uploadText').textContent = t.uploadText;
+            document.getElementById('uploadSubtext').textContent = t.uploadSubtext;
+            
+            document.getElementById('contactLabel').textContent = t.yourContact;
+            document.getElementById('submitReportBtn').textContent = t.submitReport;
+            
+            // Update filter buttons
+            document.getElementById('allFilterBtn').textContent = t.all;
+            document.getElementById('newFilterBtn').textContent = t.new;
+            document.getElementById('progressFilterBtn').textContent = t.progress;
+            document.getElementById('completedFilterBtn').textContent = t.completed;
+            document.getElementById('rejectedFilterBtn').textContent = t.rejected;
+            
+            // Update reports section title
+            updateReportsSectionTitle();
+            
+            // Update login modal if open
+            updateLoginModalLanguage();
+            
+            // Update success modal
+            updateSuccessModalLanguage();
+            
+            // Update login success modal
+            updateLoginSuccessModalLanguage();
+            
+            // Update login required message
+            updateLoginRequiredMessage();
+            
+            // Re-render reports to update language
+            if (currentUserType === 'authority') {
+                renderReportsForAuthority();
+            } else {
+                renderReports();
+            }
+        }
+        
+        function updateLoginModalLanguage() {
+            const t = translations[currentLanguage];
+            const modal = document.getElementById('loginModal');
+            
+            if (!modal.classList.contains('hidden')) {
+                const title = document.getElementById('loginTitle');
+                const subtitle = document.getElementById('loginSubtitle');
+                
+                if (currentUserType === 'citizen') {
+                    title.textContent = t.citizenLoginTitle;
+                    subtitle.textContent = t.citizenLoginSubtitle;
+                } else if (currentUserType === 'authority') {
+                    title.textContent = t.authorityLoginTitle;
+                    subtitle.textContent = t.authorityLoginSubtitle;
+                }
+                
+                // Update form labels
+                document.getElementById('passwordTab').textContent = t.password;
+                document.getElementById('otpTab').textContent = t.otp;
+                document.getElementById('emailLabel').textContent = t.emailAddress;
+                document.getElementById('loginEmail').placeholder = t.enterEmail;
+                document.getElementById('passwordLabel').textContent = t.password;
+                document.getElementById('loginPassword').placeholder = t.enterPassword;
+                document.getElementById('phoneLabel').textContent = t.phoneNumber;
+                document.getElementById('loginPhone').placeholder = t.enterPhone;
+                document.getElementById('otpLabel').textContent = t.enterOTP;
+                document.getElementById('rememberMeLabel').textContent = t.rememberMe;
+                document.getElementById('forgotPasswordLink').textContent = t.forgotPassword;
+                document.getElementById('orText').textContent = t.or;
+                document.getElementById('didntReceiveText').textContent = t.didntReceiveOTP;
+                document.getElementById('resendBtn').textContent = t.resend;
+                document.getElementById('guestLoginBtn').textContent = t.continueAsGuest;
+                document.getElementById('noAccountText').textContent = t.dontHaveAccount;
+                document.getElementById('signUpLink').textContent = t.signUp;
+                
+                // Update login button text
+                if (currentLoginMethod === 'password') {
+                    document.getElementById('loginBtnText').textContent = t.signIn;
+                } else {
+                    document.getElementById('loginBtnText').textContent = otpSent ? t.verifyOTP : t.sendOTP;
+                }
+            }
+        }
+        
+        function updateSuccessModalLanguage() {
+            const t = translations[currentLanguage];
+            document.getElementById('reportSubmittedTitle').textContent = t.reportSubmitted;
+            document.getElementById('closeSuccessBtn').textContent = t.close;
+        }
+        
+        function updateLoginSuccessModalLanguage() {
+            const t = translations[currentLanguage];
+            const welcomeTitle = document.getElementById('welcomeTitle');
+            const welcomeMessage = document.getElementById('welcomeMessage');
+            const continueButton = document.getElementById('continueBtn');
+            
+            if (currentUserType === 'citizen') {
+                welcomeTitle.textContent = t.welcomeCitizen;
+                welcomeMessage.textContent = t.citizenWelcomeText;
+            } else if (currentUserType === 'authority') {
+                welcomeTitle.textContent = t.welcomeAuthority;
+                welcomeMessage.textContent = t.authorityWelcomeText;
+            } else if (currentUserType === 'guest') {
+                welcomeTitle.textContent = t.welcomeGuest;
+                welcomeMessage.textContent = t.guestWelcomeText;
+            } else {
+                welcomeTitle.textContent = t.welcomeBack;
+                welcomeMessage.textContent = 'You have successfully logged in to your account.';
+            }
+            continueButton.textContent = t.continue;
+        }
+        
+        function updateLoginRequiredMessage() {
+            const t = translations[currentLanguage];
+            document.getElementById('loginRequiredTitle').textContent = t.loginRequired;
+            document.getElementById('loginRequiredText').textContent = t.loginRequiredText;
+            document.getElementById('loginRequiredCitizenBtn').textContent = t.citizenLogin;
+            document.getElementById('loginRequiredAuthorityBtn').textContent = t.authorityLogin;
+            document.getElementById('anonymousSubmitText').textContent = t.anonymousSubmit;
+        }
+        
+        function updateReportsSectionTitle() {
+            const t = translations[currentLanguage];
+            const reportsTitle = document.getElementById('recentReportsTitle');
+            
+            if (currentUserType === 'citizen') {
+                reportsTitle.textContent = t.myReports;
+            } else if (currentUserType === 'authority') {
+                reportsTitle.textContent = t.authorityDashboard;
+            } else {
+                reportsTitle.textContent = t.recentReports;
+            }
+        }
+
+        function switchLoginMethod(method) {
+            currentLoginMethod = method;
+            const passwordTab = document.getElementById('passwordTab');
+            const otpTab = document.getElementById('otpTab');
+            const passwordForm = document.getElementById('passwordLoginForm');
+            const otpForm = document.getElementById('otpLoginForm');
+            const t = translations[currentLanguage];
+            
+            if (method === 'password') {
+                passwordTab.className = 'flex-1 py-2 px-4 rounded-md text-sm font-medium bg-white text-gray-900 shadow-sm';
+                otpTab.className = 'flex-1 py-2 px-4 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900';
+                passwordForm.classList.remove('hidden');
+                otpForm.classList.add('hidden');
+                document.getElementById('loginBtnText').textContent = t.signIn;
+            } else {
+                otpTab.className = 'flex-1 py-2 px-4 rounded-md text-sm font-medium bg-white text-gray-900 shadow-sm';
+                passwordTab.className = 'flex-1 py-2 px-4 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900';
+                otpForm.classList.remove('hidden');
+                passwordForm.classList.add('hidden');
+                document.getElementById('loginBtnText').textContent = otpSent ? t.verifyOTP : t.sendOTP;
+            }
+            
+            // Reset OTP state when switching
+            if (method === 'password') {
+                otpSent = false;
+                document.getElementById('otpSection').classList.add('hidden');
+            }
+        }
+
+        function showLoginModal(userType) {
+            const modal = document.getElementById('loginModal');
+            const icon = document.getElementById('loginIcon');
+            const emoji = document.getElementById('loginEmoji');
+            const title = document.getElementById('loginTitle');
+            const subtitle = document.getElementById('loginSubtitle');
+            const submitBtn = document.getElementById('loginSubmitBtn');
+            const t = translations[currentLanguage];
+            
+            if (userType === 'citizen') {
+                icon.className = 'w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4';
+                emoji.textContent = '👤';
+                title.textContent = t.citizenLoginTitle;
+                subtitle.textContent = t.citizenLoginSubtitle;
+                submitBtn.className = 'w-full bg-purple-600 text-white py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors';
+            } else {
+                icon.className = 'w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4';
+                emoji.textContent = '🏛️';
+                title.textContent = t.authorityLoginTitle;
+                subtitle.textContent = t.authorityLoginSubtitle;
+                submitBtn.className = 'w-full bg-yellow-500 text-gray-800 py-3 rounded-lg font-medium hover:bg-yellow-600 transition-colors';
+            }
+            
+            currentUserType = userType;
+            // Reset to password method when opening modal
+            switchLoginMethod('password');
+            updateLoginModalLanguage();
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginModal').classList.add('hidden');
+            document.getElementById('loginModal').classList.remove('flex');
+            document.getElementById('loginForm').reset();
+            // Reset OTP state
+            otpSent = false;
+            generatedOTP = null;
+            document.getElementById('otpSection').classList.add('hidden');
+            document.querySelectorAll('.otp-input').forEach(input => input.value = '');
+        }
+
+        function sendOTP() {
+            const phone = document.getElementById('loginPhone').value;
+            if (!phone) {
+                const t = translations[currentLanguage];
+                alert(currentLanguage === 'hi' ? 'कृपया अपना फोन नंबर दर्ज करें।' : 'Please enter your phone number.');
+                return false;
+            }
+            
+            // Generate random 6-digit OTP
+            generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
+            otpSent = true;
+            
+            // Show OTP section
+            document.getElementById('otpSection').classList.remove('hidden');
+            const t = translations[currentLanguage];
+            document.getElementById('loginBtnText').textContent = t.verifyOTP;
+            
+            // Simulate SMS (in real app, this would call SMS API)
+            const message = currentLanguage === 'hi' ? 
+                `${phone} पर ओटीपी भेजा गया: ${generatedOTP} (यह केवल डेमो के लिए है)` :
+                `OTP sent to ${phone}: ${generatedOTP} (This is for demo purposes only)`;
+            alert(message);
+            
+            return false; // Prevent form submission
+        }
+
+        function verifyOTP() {
+            const otpInputs = document.querySelectorAll('.otp-input');
+            const enteredOTP = Array.from(otpInputs).map(input => input.value).join('');
+            
+            if (enteredOTP.length !== 6) {
+                const message = currentLanguage === 'hi' ? 
+                    'कृपया पूरा 6-अंकीय ओटीपी दर्ज करें।' :
+                    'Please enter the complete 6-digit OTP.';
+                alert(message);
+                return false;
+            }
+            
+            if (enteredOTP === generatedOTP) {
+                return true; // OTP verified
+            } else {
+                const message = currentLanguage === 'hi' ? 
+                    'गलत ओटीपी। कृपया पुनः प्रयास करें।' :
+                    'Invalid OTP. Please try again.';
+                alert(message);
+                return false;
+            }
+        }
+
+        function resendOTP() {
+            const phone = document.getElementById('loginPhone').value;
+            if (phone) {
+                sendOTP();
+            }
+        }
+
+        function guestLogin() {
+            isLoggedIn = true;
+            currentUserType = 'guest';
+            
+            // Close login modal
+            closeLoginModal();
+            
+            // Show guest welcome
+            updateLoginSuccessModalLanguage();
+            
+            document.getElementById('loginSuccessModal').classList.remove('hidden');
+            document.getElementById('loginSuccessModal').classList.add('flex');
+            
+            // Update header for guest
+            updateHeaderForLoggedInUser();
+            
+            // Show reports for guest users
+            renderReports();
+        }
+
+        function closeLoginSuccessModal() {
+            document.getElementById('loginSuccessModal').classList.add('hidden');
+            document.getElementById('loginSuccessModal').classList.remove('flex');
+            
+            // Ensure reports are displayed after closing welcome modal
+            if (currentUserType === 'authority') {
+                renderReportsForAuthority();
+            } else {
+                renderReports();
+            }
+        }
+
+        // Login form submission
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (currentLoginMethod === 'password') {
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+                
+                if (email && password) {
+                    processSuccessfulLogin();
+                } else {
+                    const message = currentLanguage === 'hi' ? 
+                        'कृपया ईमेल और पासवर्ड दोनों दर्ज करें।' :
+                        'Please enter both email and password.';
+                    alert(message);
+                }
+            } else if (currentLoginMethod === 'otp') {
+                if (!otpSent) {
+                    // Send OTP
+                    sendOTP();
+                } else {
+                    // Verify OTP
+                    if (verifyOTP()) {
+                        processSuccessfulLogin();
+                    }
+                }
+            }
+        });
+
+        function processSuccessfulLogin() {
+            isLoggedIn = true;
+            
+            // Store user email for citizen login
+            if (currentUserType === 'citizen') {
+                currentUserEmail = document.getElementById('loginEmail').value;
+                // Auto-fill contact field in report form
+                document.getElementById('contact').value = currentUserEmail;
+                document.getElementById('contact').readOnly = true;
+                document.getElementById('contact').classList.add('bg-gray-100');
+            }
+            
+            // Update welcome message based on user type
+            updateLoginSuccessModalLanguage();
+            
+            if (currentUserType === 'citizen') {
+                // Show citizen dashboard
+                document.getElementById('citizenDashboard').style.display = 'block';
+                updateCitizenStats();
+            } else if (currentUserType === 'authority') {
+                // Apply authority theme
+                applyAuthorityTheme();
+                
+                // Switch to authority dashboard view
+                switchToAuthorityView();
+            }
+            
+            // Close login modal and show success
+            closeLoginModal();
+            document.getElementById('loginSuccessModal').classList.remove('hidden');
+            document.getElementById('loginSuccessModal').classList.add('flex');
+            
+            // Update header to show logged in state
+            updateHeaderForLoggedInUser();
+            
+            // Refresh reports display after login
+            if (currentUserType === 'authority') {
+                renderReportsForAuthority();
+            } else {
+                renderReports();
+            }
+        }
+
+        function updateHeaderForLoggedInUser() {
+            const t = translations[currentLanguage];
+            const headerButtons = document.querySelector('.flex.items-center.space-x-4');
+            let userTypeDisplay, userIcon;
+            
+            if (currentUserType === 'citizen') {
+                userTypeDisplay = currentLanguage === 'hi' ? 'नागरिक' : 'Citizen';
+                userIcon = '👤';
+            } else if (currentUserType === 'authority') {
+                userTypeDisplay = currentLanguage === 'hi' ? 'प्राधिकरण' : 'Authority';
+                userIcon = '🏛️';
+            } else if (currentUserType === 'guest') {
+                userTypeDisplay = currentLanguage === 'hi' ? 'अतिथि' : 'Guest';
+                userIcon = '🚶';
+            }
+            
+            const portalText = currentLanguage === 'hi' ? 'पोर्टल' : 'Portal';
+            const logoutText = currentLanguage === 'hi' ? 'लॉगआउट' : 'Logout';
+            
+            headerButtons.innerHTML = `
+                <span class="text-sm" id="locationText">${t.locationText}</span>
+                <div class="flex items-center space-x-2 bg-white bg-opacity-20 rounded-lg px-3 py-2">
+                    <span class="text-lg">${userIcon}</span>
+                    <span class="text-sm font-medium">${userTypeDisplay} ${portalText}</span>
+                </div>
+                <button onclick="toggleLanguage()" class="bg-blue-500 text-white px-3 py-2 rounded-lg font-medium hover:bg-blue-600 transition-colors text-sm flex items-center space-x-1">
+                    <span>🌐</span>
+                    <span id="languageToggle">${t.languageToggle}</span>
+                </button>
+                <button onclick="logout()" class="bg-red-500 text-white px-3 py-2 rounded-lg font-medium hover:bg-red-600 transition-colors text-sm">
+                    ${logoutText}
+                </button>
+            `;
+        }
+
+        function applyAuthorityTheme() {
+            // Apply authority theme to the page
+            document.body.classList.add('authority-theme');
+            document.querySelector('.gradient-bg').classList.add('authority-theme');
+        }
+        
+        function removeAuthorityTheme() {
+            // Remove authority theme from the page
+            document.body.classList.remove('authority-theme');
+            document.querySelector('.gradient-bg').classList.remove('authority-theme');
+        }
+        
+        function switchToAuthorityView() {
+            // Show dashboard stats for authorities
+            document.getElementById('dashboardStats').style.display = 'grid';
+            
+            // Hide the report form for authorities
+            const reportFormSection = document.querySelector('.lg\\:col-span-1');
+            reportFormSection.style.display = 'none';
+            
+            // Expand the reports list to full width
+            const reportsSection = document.querySelector('.lg\\:col-span-2');
+            reportsSection.className = 'lg:col-span-3';
+            
+            // Update the reports list title
+            updateReportsSectionTitle();
+            
+            // Re-render reports with authority view
+            renderReportsForAuthority();
+        }
+        
+        function switchToCitizenView() {
+            // Hide dashboard stats for citizens
+            document.getElementById('dashboardStats').style.display = 'none';
+            
+            // Show citizen dashboard if logged in as citizen
+            if (currentUserType === 'citizen') {
+                document.getElementById('citizenDashboard').style.display = 'block';
+                updateCitizenStats();
+            } else {
+                document.getElementById('citizenDashboard').style.display = 'none';
+            }
+            
+            // Show the report form
+            const reportFormSection = document.querySelector('.lg\\:col-span-1');
+            reportFormSection.style.display = 'block';
+            
+            // Reset the reports list width
+            const reportsSection = document.querySelector('.lg\\:col-span-3');
+            if (reportsSection) {
+                reportsSection.className = 'lg:col-span-2';
+            }
+            
+            // Update the reports list title
+            updateReportsSectionTitle();
+            
+            // Re-render reports with citizen view
+            renderReports();
+        }
+        
+        function updateCitizenStats() {
+            if (currentUserType === 'citizen' && currentUserEmail) {
+                const userReports = reports.filter(r => r.contact === currentUserEmail);
+                const newCount = userReports.filter(r => r.status === 'new').length;
+                const progressCount = userReports.filter(r => r.status === 'progress').length;
+                const completedCount = userReports.filter(r => r.status === 'completed').length;
+                const rejectedCount = userReports.filter(r => r.status === 'rejected').length;
+                
+                document.getElementById('citizenNew').textContent = newCount;
+                document.getElementById('citizenProgress').textContent = progressCount;
+                document.getElementById('citizenCompleted').textContent = completedCount;
+                document.getElementById('citizenRejected').textContent = rejectedCount;
+            }
+        }
+
+        function logout() {
+            isLoggedIn = false;
+            const wasAuthority = currentUserType === 'authority';
+            currentUserType = null;
+            currentUserEmail = null;
+            
+            // Reset contact field
+            const contactField = document.getElementById('contact');
+            contactField.value = '';
+            contactField.readOnly = false;
+            contactField.classList.remove('bg-gray-100');
+            contactField.placeholder = 'email@example.com';
+            
+            // Remove authority theme if it was applied
+            if (wasAuthority) {
+                removeAuthorityTheme();
+                switchToCitizenView();
+            }
+            
+            // Hide citizen dashboard
+            document.getElementById('citizenDashboard').style.display = 'none';
+            
+            // Reset header
+            const t = translations[currentLanguage];
+            const headerButtons = document.querySelector('.flex.items-center.space-x-4');
+            headerButtons.innerHTML = `
+                <span class="text-sm" id="locationText">${t.locationText}</span>
+                <button onclick="showLoginModal('citizen')" class="bg-white text-purple-600 px-3 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors text-sm" id="citizenLoginBtn">
+                    ${t.citizenLogin}
+                </button>
+                <button onclick="showLoginModal('authority')" class="bg-yellow-400 text-gray-800 px-3 py-2 rounded-lg font-medium hover:bg-yellow-300 transition-colors text-sm" id="authorityLoginBtn">
+                    ${t.authorityLogin}
+                </button>
+                <button onclick="toggleLanguage()" class="bg-blue-500 text-white px-3 py-2 rounded-lg font-medium hover:bg-blue-600 transition-colors text-sm flex items-center space-x-1">
+                    <span>🌐</span>
+                    <span id="languageToggle">${t.languageToggle}</span>
+                </button>
+            `;
+            
+            // Update reports section title
+            updateReportsSectionTitle();
+            
+            const message = currentLanguage === 'hi' ? 
+                'आप सफलतापूर्वक लॉग आउट हो गए हैं।' :
+                'You have been logged out successfully.';
+            alert(message);
+        }
+
+        function renderReports() {
+            const reportsList = document.getElementById('reportsList');
+            const loginRequiredMessage = document.getElementById('loginRequiredMessage');
+            const filterButtons = document.getElementById('filterButtons');
+            
+            // Check if user is logged in
+            if (!isLoggedIn) {
+                reportsList.style.display = 'none';
+                filterButtons.style.display = 'none';
+                loginRequiredMessage.style.display = 'block';
+                return;
+            }
+            
+            // Show reports and filters for logged in users
+            reportsList.style.display = 'block';
+            filterButtons.style.display = 'flex';
+            loginRequiredMessage.style.display = 'none';
+            
+            // For citizens, only show their own reports
+            let filteredReports;
+            if (currentUserType === 'citizen' && currentUserEmail) {
+                const userReports = reports.filter(r => r.contact === currentUserEmail);
+                filteredReports = currentFilter === 'all' ? userReports : userReports.filter(r => r.status === currentFilter);
+            } else {
+                // For guests, show all reports
+                filteredReports = currentFilter === 'all' ? reports : reports.filter(r => r.status === currentFilter);
+            }
+            
+            if (filteredReports.length === 0) {
+                const emptyMessage = currentUserType === 'citizen' ? 
+                    (currentLanguage === 'hi' ? 
+                        'आपने अभी तक कोई रिपोर्ट जमा नहीं की है। समस्या की रिपोर्ट करने के लिए बाईं ओर के फॉर्म का उपयोग करें।' :
+                        'You haven\'t submitted any reports yet. Use the form on the left to report an issue.') :
+                    (currentLanguage === 'hi' ? 
+                        'इस फिल्टर के लिए कोई रिपोर्ट नहीं मिली।' :
+                        'No reports found for this filter.');
+                reportsList.innerHTML = `<div class="p-6 text-center text-gray-500">${emptyMessage}</div>`;
+                return;
+            }
+            
+            const t = translations[currentLanguage];
+            
+            reportsList.innerHTML = filteredReports.map(report => `
+                <div class="p-6 priority-${report.priority}">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-3 mb-2">
+                                <span class="font-mono text-sm font-medium text-gray-600">${report.id}</span>
+                                <span class="status-${report.status} px-2 py-1 rounded-full text-xs font-medium">
+                                    ${getStatusText(report.status)}
+                                </span>
+                                <span class="text-xs text-gray-500">${report.date}</span>
+                                ${currentUserType === 'citizen' ? `<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">${t.yourReport}</span>` : ''}
+                            </div>
+                            <h4 class="font-medium text-gray-900 mb-1">${getIssueIcon(report.type)} ${report.location}</h4>
+                            <p class="text-sm text-gray-600 mb-2">${report.description}</p>
+                            ${report.status === 'rejected' && report.rejectionReason ? `
+                                <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-2">
+                                    <p class="text-sm font-medium text-red-800 mb-1">${t.rejectionReason}</p>
+                                    <p class="text-sm text-red-700">${report.rejectionReason}</p>
+                                </div>
+                            ` : ''}
+                            <div class="flex items-center space-x-4 text-xs text-gray-500">
+                                <span>${t.type}: ${getIssueTypeText(report.type)}</span>
+                                <span>${t.priorityLevel}: ${getPriorityText(report.priority)}</span>
+                                ${report.photos && report.photos.length > 0 ? `<span class="flex items-center"><span class="mr-1">📷</span>${report.photos.length} ${currentLanguage === 'hi' ? 'फोटो' : 'photo'}${report.photos.length > 1 ? (currentLanguage === 'hi' ? '' : 's') : ''}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <button onclick="viewReport('${report.id}')" class="text-purple-600 hover:text-purple-800 text-sm font-medium">
+                                ${t.viewDetails}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function renderReportsForAuthority() {
+            const reportsList = document.getElementById('reportsList');
+            const loginRequiredMessage = document.getElementById('loginRequiredMessage');
+            const filterButtons = document.getElementById('filterButtons');
+            const t = translations[currentLanguage];
+            
+            // Always show reports and filters for authority users
+            reportsList.style.display = 'block';
+            filterButtons.style.display = 'flex';
+            loginRequiredMessage.style.display = 'none';
+            
+            const filteredReports = currentFilter === 'all' ? reports : reports.filter(r => r.status === currentFilter);
+            
+            if (filteredReports.length === 0) {
+                const message = currentLanguage === 'hi' ? 
+                    'इस फिल्टर के लिए कोई रिपोर्ट नहीं मिली।' :
+                    'No reports found for this filter.';
+                reportsList.innerHTML = `<div class="p-6 text-center text-gray-500">${message}</div>`;
+                return;
+            }
+            
+            reportsList.innerHTML = filteredReports.map(report => `
+                <div class="p-6 priority-${report.priority} border-l-4">
+                    <div class="space-y-4">
+                        <!-- Report Header -->
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-3 mb-2">
+                                    <span class="font-mono text-sm font-medium text-gray-600">${report.id}</span>
+                                    <span class="status-${report.status} px-2 py-1 rounded-full text-xs font-medium">
+                                        ${getStatusText(report.status)}
+                                    </span>
+                                    <span class="text-xs text-gray-500">${report.date}</span>
+                                    <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+                                        ${getPriorityText(report.priority)} ${t.priorityLevel}
+                                    </span>
+                                </div>
+                                <h4 class="font-semibold text-gray-900 mb-2 text-lg">${getIssueIcon(report.type)} ${report.location}</h4>
+                            </div>
+                            <div class="flex space-x-2">
+                                ${report.status !== 'progress' && report.status !== 'completed' && report.status !== 'rejected' ? `
+                                    <button onclick="updateReportStatus('${report.id}', 'progress')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-200 transition-colors">
+                                        ${t.markInProgress}
+                                    </button>
+                                ` : ''}
+                                ${report.status !== 'completed' && report.status !== 'rejected' ? `
+                                    <button onclick="updateReportStatus('${report.id}', 'completed')" class="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium hover:bg-green-200 transition-colors">
+                                        ${t.markCompleted}
+                                    </button>
+                                ` : ''}
+                                ${report.status !== 'rejected' && report.status !== 'completed' ? `
+                                    <button onclick="rejectReport('${report.id}')" class="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-medium hover:bg-red-200 transition-colors">
+                                        ${t.rejectReport}
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                        
+                        <!-- Report Details -->
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h5 class="font-medium text-gray-900 mb-2">${t.issueDescription}</h5>
+                            <p class="text-sm text-gray-700 mb-3">${report.description}</p>
+                            
+                            ${report.status === 'rejected' && report.rejectionReason ? `
+                                <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+                                    <h6 class="font-medium text-red-800 mb-1">${t.rejectionReason}</h6>
+                                    <p class="text-sm text-red-700">${report.rejectionReason}</p>
+                                </div>
+                            ` : ''}
+                            
+                            <div class="grid grid-cols-2 gap-4 text-xs text-gray-600">
+                                <div><strong>${t.type}:</strong> ${getIssueTypeText(report.type)}</div>
+                                <div><strong>${t.contact}:</strong> ${report.contact || t.anonymous}</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Photos Section -->
+                        ${report.photos && report.photos.length > 0 ? `
+                            <div>
+                                <h5 class="font-medium text-gray-900 mb-3 flex items-center">
+                                    <span class="mr-2">📷</span>
+                                    ${t.uploadedPhotos} (${report.photos.length})
+                                </h5>
+                                <div class="grid grid-cols-3 gap-3">
+                                    ${report.photos.map(photo => `
+                                        <div class="relative group cursor-pointer" onclick="viewPhotoModal('${photo.dataUrl}', '${photo.name}')">
+                                            <img src="${photo.dataUrl}" alt="${photo.name}" class="w-full h-24 object-cover rounded-lg border border-gray-200 hover:border-yellow-400 transition-colors">
+                                            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all flex items-center justify-center">
+                                                <span class="text-white opacity-0 group-hover:opacity-100 text-sm font-medium">${t.viewFullSize}</span>
+                                            </div>
+                                            <div class="absolute bottom-1 left-1 right-1 bg-black bg-opacity-70 text-white text-xs p-1 rounded truncate">
+                                                ${photo.name}
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : `<div class="text-sm text-gray-500 italic">${t.noPhotos}</div>`}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getIssueIcon(type) {
+            const icons = {
+                pothole: '🕳️',
+                crack: '⚡',
+                signage: '🚧',
+                lighting: '💡',
+                drainage: '🌊',
+                other: '⚠️'
+            };
+            return icons[type] || '⚠️';
+        }
+        
+        function getStatusText(status) {
+            const t = translations[currentLanguage];
+            const statusMap = {
+                new: t.new,
+                progress: t.progress,
+                completed: t.completed,
+                rejected: t.rejected
+            };
+            return statusMap[status] || status;
+        }
+        
+        function getIssueTypeText(type) {
+            const t = translations[currentLanguage];
+            const typeMap = {
+                pothole: t.pothole,
+                crack: t.crack,
+                signage: t.signage,
+                lighting: t.lighting,
+                drainage: t.drainage,
+                other: t.other
+            };
+            return typeMap[type] || type;
+        }
+        
+        function getPriorityText(priority) {
+            const t = translations[currentLanguage];
+            const priorityMap = {
+                low: t.low,
+                medium: t.medium,
+                high: t.high
+            };
+            return priorityMap[priority] || priority;
+        }
+
+        function filterReports(status) {
+            currentFilter = status;
+            
+            // Update filter button styles
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.className = 'filter-btn px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700';
+            });
+            
+            // Apply theme-appropriate active style
+            if (currentUserType === 'authority') {
+                event.target.className = 'filter-btn px-3 py-1 rounded-full text-sm bg-yellow-100 text-yellow-700';
+            } else {
+                event.target.className = 'filter-btn px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-700';
+            }
+            
+            // Render appropriate view
+            if (currentUserType === 'authority') {
+                renderReportsForAuthority();
+            } else {
+                renderReports();
+            }
+        }
+        
+        function updateReportStatus(reportId, newStatus) {
+            const report = reports.find(r => r.id === reportId);
+            if (report) {
+                report.status = newStatus;
+                
+                // Update stats
+                const inProgressCount = reports.filter(r => r.status === 'progress').length;
+                const completedCount = reports.filter(r => r.status === 'completed').length;
+                const rejectedCount = reports.filter(r => r.status === 'rejected').length;
+                
+                document.getElementById('inProgress').textContent = inProgressCount;
+                document.getElementById('completed').textContent = completedCount;
+                document.getElementById('rejected').textContent = rejectedCount;
+                
+                // Re-render reports
+                renderReportsForAuthority();
+                
+                // Show confirmation
+                const statusText = newStatus === 'progress' ? 
+                    (currentLanguage === 'hi' ? 'प्रगति में' : 'In Progress') : 
+                    (currentLanguage === 'hi' ? 'पूर्ण' : 'Completed');
+                const message = currentLanguage === 'hi' ? 
+                    `रिपोर्ट ${reportId} को ${statusText} के रूप में चिह्नित किया गया है।` :
+                    `Report ${reportId} has been marked as ${statusText}.`;
+                alert(message);
+            }
+        }
+        
+        function rejectReport(reportId) {
+            const reasonPrompt = currentLanguage === 'hi' ? 
+                'कृपया इस रिपोर्ट को अस्वीकार करने का कारण बताएं:' :
+                'Please provide a reason for rejecting this report:';
+            const reason = prompt(reasonPrompt);
+            
+            if (reason && reason.trim()) {
+                const report = reports.find(r => r.id === reportId);
+                if (report) {
+                    report.status = 'rejected';
+                    report.rejectionReason = reason.trim();
+                    
+                    // Update rejected count
+                    const rejectedCount = reports.filter(r => r.status === 'rejected').length;
+                    document.getElementById('rejected').textContent = rejectedCount;
+                    
+                    // Re-render reports
+                    renderReportsForAuthority();
+                    
+                    const message = currentLanguage === 'hi' ? 
+                        `रिपोर्ट ${reportId} को अस्वीकार कर दिया गया है। कारण: ${reason}` :
+                        `Report ${reportId} has been rejected. Reason: ${reason}`;
+                    alert(message);
+                }
+            } else if (reason !== null) {
+                const message = currentLanguage === 'hi' ? 
+                    'कृपया अस्वीकृति के लिए एक वैध कारण प्रदान करें।' :
+                    'Please provide a valid reason for rejection.';
+                alert(message);
+            }
+        }
+        
+        function viewPhotoModal(dataUrl, fileName) {
+            const modal = document.getElementById('photoModal');
+            const image = document.getElementById('photoModalImage');
+            const title = document.getElementById('photoModalTitle');
+            
+            image.src = dataUrl;
+            image.alt = fileName;
+            title.textContent = fileName;
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        
+        function closePhotoModal() {
+            const modal = document.getElementById('photoModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function viewReport(id) {
+            const report = reports.find(r => r.id === id);
+            if (report) {
+                const t = translations[currentLanguage];
+                let details = `${currentLanguage === 'hi' ? 'रिपोर्ट विवरण' : 'Report Details'}:\n\n`;
+                details += `ID: ${report.id}\n`;
+                details += `${currentLanguage === 'hi' ? 'स्थान' : 'Location'}: ${report.location}\n`;
+                details += `${t.type}: ${getIssueTypeText(report.type)}\n`;
+                details += `${t.priorityLevel}: ${getPriorityText(report.priority)}\n`;
+                details += `${currentLanguage === 'hi' ? 'स्थिति' : 'Status'}: ${getStatusText(report.status)}\n`;
+                details += `${t.description}: ${report.description}\n`;
+                details += `${currentLanguage === 'hi' ? 'दिनांक' : 'Date'}: ${report.date}`;
+                
+                if (report.status === 'rejected' && report.rejectionReason) {
+                    details += `\n\n${t.rejectionReason} ${report.rejectionReason}`;
+                }
+                
+                alert(details);
+            }
+        }
+
+        function generateReportId() {
+            const year = new Date().getFullYear();
+            const num = String(reports.length + 1).padStart(3, '0');
+            return `JP-${year}-${num}`;
+        }
+
+        function handlePhotoUpload(event) {
+            const files = Array.from(event.target.files);
+            const maxFiles = 3;
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            
+            // Check file count
+            if (uploadedPhotos.length + files.length > maxFiles) {
+                const message = currentLanguage === 'hi' ? 
+                    `आप केवल ${maxFiles} फोटो तक अपलोड कर सकते हैं।` :
+                    `You can only upload up to ${maxFiles} photos.`;
+                alert(message);
+                return;
+            }
+            
+            // Process each file
+            files.forEach(file => {
+                // Check file size
+                if (file.size > maxSize) {
+                    const message = currentLanguage === 'hi' ? 
+                        `फाइल "${file.name}" बहुत बड़ी है। अधिकतम आकार 5MB है।` :
+                        `File "${file.name}" is too large. Maximum size is 5MB.`;
+                    alert(message);
+                    return;
+                }
+                
+                // Check file type
+                if (!file.type.startsWith('image/')) {
+                    const message = currentLanguage === 'hi' ? 
+                        `फाइल "${file.name}" एक इमेज नहीं है।` :
+                        `File "${file.name}" is not an image.`;
+                    alert(message);
+                    return;
+                }
+                
+                // Create file reader
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const photoData = {
+                        id: Date.now() + Math.random(),
+                        name: file.name,
+                        size: file.size,
+                        dataUrl: e.target.result
+                    };
+                    
+                    uploadedPhotos.push(photoData);
+                    updatePhotoPreview();
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        function updatePhotoPreview() {
+            const previewContainer = document.getElementById('photoPreview');
+            const uploadArea = document.getElementById('uploadArea');
+            
+            if (uploadedPhotos.length === 0) {
+                previewContainer.classList.add('hidden');
+                uploadArea.style.display = 'block';
+                return;
+            }
+            
+            previewContainer.classList.remove('hidden');
+            uploadArea.style.display = uploadedPhotos.length >= 3 ? 'none' : 'block';
+            
+            previewContainer.innerHTML = uploadedPhotos.map(photo => `
+                <div class="relative group">
+                    <img src="${photo.dataUrl}" alt="${photo.name}" class="w-full h-20 object-cover rounded-lg border border-gray-200">
+                    <button onclick="removePhoto('${photo.id}')" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100">
+                        ×
+                    </button>
+                    <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 rounded-b-lg truncate">
+                        ${photo.name}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function removePhoto(photoId) {
+            uploadedPhotos = uploadedPhotos.filter(photo => photo.id !== photoId);
+            updatePhotoPreview();
+            
+            // Reset file input
+            document.getElementById('photoUpload').value = '';
+        }
+
+        function closeModal() {
+            document.getElementById('successModal').classList.add('hidden');
+            document.getElementById('successModal').classList.remove('flex');
+        }
+
+        // Form submission
+        document.getElementById('reportForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                id: generateReportId(),
+                type: document.getElementById('issueType').value,
+                location: document.getElementById('location').value,
+                priority: document.getElementById('priority').value,
+                status: 'new',
+                description: document.getElementById('description').value,
+                date: new Date().toISOString().split('T')[0],
+                contact: document.getElementById('contact').value,
+                photos: [...uploadedPhotos]
+            };
+            
+            if (!formData.type || !formData.location || !formData.description) {
+                const message = currentLanguage === 'hi' ? 
+                    'कृपया सभी आवश्यक फील्ड भरें।' :
+                    'Please fill in all required fields.';
+                alert(message);
+                return;
+            }
+            
+            // Add to reports array
+            reports.unshift(formData);
+            
+            // Update stats
+            document.getElementById('totalReports').textContent = reports.length;
+            
+            // Update citizen stats if logged in as citizen
+            if (currentUserType === 'citizen') {
+                updateCitizenStats();
+            }
+            
+            // Show success modal
+            document.getElementById('reportId').textContent = formData.id;
+            updateSuccessModalLanguage();
+            document.getElementById('successModal').classList.remove('hidden');
+            document.getElementById('successModal').classList.add('flex');
+            
+            // Reset form
+            this.reset();
+            
+            // Clear uploaded photos
+            uploadedPhotos = [];
+            updatePhotoPreview();
+            
+            // Refresh reports list
+            renderReports();
+        });
+
+        // OTP input auto-focus functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const otpInputs = document.querySelectorAll('.otp-input');
+            
+            otpInputs.forEach((input, index) => {
+                input.addEventListener('input', function() {
+                    if (this.value.length === 1 && index < otpInputs.length - 1) {
+                        otpInputs[index + 1].focus();
+                    }
+                });
+                
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && this.value === '' && index > 0) {
+                        otpInputs[index - 1].focus();
+                    }
+                });
+                
+                // Only allow numbers
+                input.addEventListener('keypress', function(e) {
+                    if (!/[0-9]/.test(e.key) && e.key !== 'Backspace') {
+                        e.preventDefault();
+                    }
+                });
+            });
+        });
+
+        // Initialize - show login required message by default
+        renderReports();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98493964e7147e97',t:'MTc1ODc4OTcwNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
